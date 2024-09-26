@@ -1,0 +1,62 @@
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: demo-gw
+  namespace: demo
+spec:
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: demo-auth
+  namespace: demo
+spec:
+  hosts:
+  - "auth.local"
+  gateways:
+  - demo-gw
+  http:
+  - route:
+    - destination:
+        host: auth
+        port:
+          number: 8080
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: demo-api
+  namespace: demo
+spec:
+  hosts:
+  - "demo.local"
+  gateways:
+  - demo-gw
+  http:
+  - match:
+    - uri:
+        prefix: "/a"
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: a
+        port:
+          number: 8080
+  - match:
+    - uri:
+        prefix: "/b"
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: b
+        port:
+          number: 8080

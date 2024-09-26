@@ -1,0 +1,188 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth
+  namespace: demo
+spec:
+  selector:
+    matchLabels:
+      app: auth
+  replicas: 1
+  template:
+    metadata:
+      name: auth-tmpl
+      labels:
+        app: auth
+    spec:
+      serviceAccountName: auth
+      containers:
+        - name: auth
+          image: docker.io/library/auth-app:v1
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5000
+          env:
+          - name: JWT_PRIVATE_EXTERNAL
+            value: |
+              {"d":"yd... <External Private Key Goes Here>
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: auth
+  namespace: demo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth
+  namespace: demo
+spec:
+  selector:
+    app: auth
+  ports:
+    - protocol: "TCP"
+      port: 8080
+      targetPort: 5000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: internal-auth
+  namespace: demo
+spec:
+  selector:
+    matchLabels:
+      app: internal-auth
+  replicas: 1
+  template:
+    metadata:
+      name: internal-auth-tmpl
+      labels:
+        app: internal-auth
+    spec:
+      serviceAccountName: internal-auth
+      containers:
+        - name: internal-auth
+          image: docker.io/library/internal-auth-app:v1
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5000
+          env:
+          - name: JWT_PUBLIC_EXTERNAL
+            value: |
+              {"e":"AQAB","kty":"RSA","n":"ie... <External Public Key Goes Here>
+          - name: JWT_PRIVATE_INTERNAL
+            value: |
+              {"d":"Op... <Internal Private Key Goes Here>
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: internal-auth
+  namespace: demo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: internal-auth
+  namespace: demo
+spec:
+  selector:
+    app: internal-auth
+  ports:
+    - protocol: "TCP"
+      port: 8080
+      targetPort: 5000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: a
+  namespace: demo
+spec:
+  selector: 
+    matchLabels:
+      app: a
+  replicas: 1
+  template:
+    metadata:
+      name: a-tmpl
+      labels:
+        app: a
+    spec:
+      serviceAccountName: a
+      containers:
+        - name: a
+          image: docker.io/library/demo-app:v1
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5000
+          env:
+          - name: SERVICE_NAME
+            value: "A"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: a
+  namespace: demo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: a
+  namespace: demo
+spec:
+  selector:
+    app: a
+  ports:
+    - protocol: "TCP"
+      port: 8080
+      targetPort: 5000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: b
+  namespace: demo
+spec:
+  selector: 
+    matchLabels:
+      app: b
+  replicas: 1
+  template:
+    metadata:
+      name: b-tmpl
+      labels:
+        app: b
+    spec:
+      serviceAccountName: b
+      containers:
+        - name: b
+          image: docker.io/library/demo-app:v1
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5000
+          env:
+          - name: SERVICE_NAME
+            value: "B"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: b
+  namespace: demo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: b
+  namespace: demo
+spec:
+  selector:
+    app: b
+  ports:
+    - protocol: "TCP"
+      port: 8080
+      targetPort: 5000

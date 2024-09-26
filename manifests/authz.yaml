@@ -1,0 +1,119 @@
+---
+# only authenticates if the header is present, doesn't enforce anything
+apiVersion: security.istio.io/v1
+kind: RequestAuthentication
+metadata:
+  name: req-authn
+  namespace: demo
+spec:
+  jwtRules:
+  - issuer: "cluster.local"
+    forwardOriginalToken: true
+    jwks: |
+      {"keys":[{"e":"AQAB","kty":"RSA","n":"53Y... <Internal Public Key Goes Here>
+---
+# peers must always use mTLS
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: mtls-only
+  namespace: istio-system
+spec:
+  mtls:
+    mode: STRICT
+---
+# all communication is denied by default
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-nothing-default
+  namespace: demo
+spec:
+  {}
+---
+# allow all calls from ingress, also without jwt
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: auth-policy
+  namespace: demo
+spec:
+  selector:
+    matchLabels:
+      app: auth
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["istio-system"]
+---
+# allow all calls from ingress, also without jwt
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: internal-auth-policy
+  namespace: demo
+spec:
+  selector:
+    matchLabels:
+      app: internal-auth
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["istio-system"]
+---
+# allow only authenticated calls from ingress to app A, and B to A
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: a-policy1
+  namespace: demo
+spec:
+  selector:
+    matchLabels:
+      app: a
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["istio-system"]
+        requestPrincipals: ["cluster.local/internal"]
+    - source:
+        principals:
+        - cluster.local/ns/demo/sa/b
+    to:
+    - operation:
+        methods: ["GET"]
+    when:
+    - key: request.auth.claims[role]
+      values: ["developer"]
+---
+# allow only authenticated calls from service A to service B
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: b-policy1
+  namespace: demo
+spec:
+  selector:
+    matchLabels:
+      app: b
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/demo/sa/a
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/"]
+    - operation:
+        methods: ["GET"]
+        paths: ["/call/*"]
+    when:
+    - key: request.auth.claims[permission]
+      values: ["all"]
+    #- key: request.headers[customAccess]
+    #  values: ["test1"]
