@@ -6,7 +6,7 @@ This setup also implements a dynamic JWT validation, using Istio external author
 
 ## Blog Post
 
-For more info see the [Blog Post](https://safelyup.net/).
+For more info see the [Blog Post](https://safelyup.net/istio-zero-trust-fine-grained-access-control-for-microservices-with-dynamic-verification-f2c17b2d7102).
 
 ## Local Deployment - Minikube
 
